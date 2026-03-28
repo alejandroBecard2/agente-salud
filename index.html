@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agente Salud & Entreno</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #ffffff12;
+    --border2: #ffffff20;
+    --text: #f0f0f5;
+    --muted: #6b6b80;
+    --primary: #6366f1;
+    --primary-dim: #6366f120;
+    --green: #22c55e;
+    --green-dim: #22c55e18;
+    --yellow: #eab308;
+    --yellow-dim: #eab30818;
+    --red: #ef4444;
+    --red-dim: #ef444418;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+    --r: 12px;
+    --r-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Layout */
+  .app { max-width: 680px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-left h1 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  .header-left .date {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--green-dim);
+    border: 1px solid #22c55e30;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--green);
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 20px;
+    margin-bottom: 12px;
+  }
+  .card-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  /* Metrics grid */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .metric {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .metric-value {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .metric-label { font-size: 11px; color: var(--muted); }
+  .metric-delta { font-size: 11px; margin-top: 3px; }
+  .good { color: var(--green); }
+  .warn { color: var(--yellow); }
+  .bad  { color: var(--red); }
+  .dim  { color: var(--muted); }
+
+  /* Sleep bar */
+  .sleep-bar {
+    display: flex;
+    height: 22px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 14px 0 8px;
+    gap: 2px;
+  }
+  .sleep-seg { transition: flex .4s; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; }
+  .seg-deep  { background: #1d4ed8; color: #bfdbfe; }
+  .seg-rem   { background: #6d28d9; color: #ddd6fe; }
+  .seg-core  { background: #0e7490; color: #a5f3fc; }
+  .seg-awake { background: #374151; color: #9ca3af; }
+  .sleep-legend {
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .leg-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--muted);
+  }
+  .leg-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+  /* Recommendation badge */
+  .rec-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .3px;
+    margin-bottom: 14px;
+  }
+  .rec-rest     { background: var(--primary-dim); color: #818cf8; border: 1px solid #6366f130; }
+  .rec-soft     { background: var(--green-dim);   color: #4ade80; border: 1px solid #22c55e30; }
+  .rec-moderate { background: var(--yellow-dim);  color: #facc15; border: 1px solid #eab30830; }
+  .rec-hard     { background: #f9731618;           color: #fb923c; border: 1px solid #f9731630; }
+  .rec-intense  { background: var(--red-dim);     color: #f87171; border: 1px solid #ef444430; }
+
+  /* Report text */
+  .report-text {
+    font-size: 14px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    color: #d4d4e0;
+  }
+  .report-text .highlight-green { color: var(--green); font-weight: 500; }
+  .report-text .highlight-yellow { color: var(--yellow); font-weight: 500; }
+  .report-text .highlight-red { color: var(--red); font-weight: 500; }
+
+  /* Workout */
+  .workout-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .workout-item:last-child { border-bottom: none; }
+  .workout-name { font-weight: 500; font-size: 13px; }
+  .workout-detail { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .workout-kcal { font-size: 13px; color: var(--yellow); font-weight: 500; }
+
+  /* Chat */
+  .chat-messages {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .chat-msg {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .chat-user {
+    background: var(--primary);
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .chat-agent {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+    color: var(--text);
+  }
+  .chat-empty {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 16px;
+  }
+  .chat-input-row { display: flex; gap: 8px; }
+  .chat-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    color: var(--text);
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .chat-input:focus { border-color: var(--primary); }
+  .chat-input::placeholder { color: var(--muted); }
+
+  /* Buttons */
+  .btn {
+    padding: 10px 18px;
+    border-radius: var(--r-sm);
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    transition: opacity .15s, transform .1s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-ghost {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-icon { padding: 10px 14px; background: var(--primary); color: white; border: none; border-radius: var(--r-sm); cursor: pointer; font-size: 16px; }
+
+  /* Loading */
+  .loading-screen {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-msg { color: var(--muted); font-size: 14px; }
+
+  /* Error */
+  .error-card {
+    background: #1a0a0a;
+    border: 1px solid #ef444430;
+    border-radius: var(--r);
+    padding: 20px;
+    margin-bottom: 12px;
+  }
+  .error-card h3 { color: var(--red); margin-bottom: 8px; }
+  .error-card p { color: var(--muted); font-size: 13px; line-height: 1.6; }
+  .error-detail {
+    background: var(--surface2);
+    border-radius: var(--r-sm);
+    padding: 10px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: #f87171;
+    margin: 10px 0;
+  }
+
+  /* Refresh button */
+  .refresh-btn {
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: var(--r-sm);
+    color: var(--muted);
+    cursor: pointer;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .refresh-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 24px;
+  }
+
+  @media (max-width: 480px) {
+    .metrics-grid { grid-template-columns: repeat(3, 1fr); }
+    .metric-value { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="loading-screen">
+    <div class="spinner"></div>
+    <div class="loading-msg">Iniciando agente...</div>
+  </div>
+</div>
+
+<script>
+const GAS_URL = '/api/data';
+const CLAUDE_API = '/api/chat';
+const MODEL = 'claude-sonnet-4-20250514';
+
+const state = {
+  view: 'loading',
+  data: null,
+  report: null,
+  chat: [],
+  chatLoading: false,
+  loadMsg: 'Iniciando agente...',
+  error: null,
+};
+
+// ── Helpers ──────────────────────────────────────────────
+function safeNum(v, max) {
+  const x = parseFloat(v);
+  if (isNaN(x) || x < 0 || (max !== undefined && x > max)) return null;
+  return x;
+}
+
+function extractHealth(row) {
+  if (!row) return null;
+  return {
+    hrv:   safeNum(row['Heart Rate Variability (ms)']),
+    rhr:   safeNum(row['Resting Heart Rate (count/min)']),
+    spo2:  safeNum(row['Blood Oxygen Saturation (%)'], 100),
+    rr:    safeNum(row['Respiratory Rate (count/min)'], 40),
+    kcal:  safeNum(row['Active Energy (kcal)'], 6000),
+    steps: safeNum(row['Step Count (count)'], 60000),
+    hrMax: safeNum(row['Heart Rate [Max] (count/min)'], 220),
+    hrAvg: safeNum(row['Heart Rate [Avg] (count/min)'], 220),
+    st:    safeNum(row['Sleep Analysis [Total] (hr)'], 24),
+    sd:    safeNum(row['Sleep Analysis [Deep] (hr)'], 12),
+    sr:    safeNum(row['Sleep Analysis [REM] (hr)'], 12),
+    sc:    safeNum(row['Sleep Analysis [Core] (hr)'], 12),
+    sa:    safeNum(row['Sleep Analysis [Awake] (hr)'], 12),
+  };
+}
+
+function extractWorkouts(rows) {
+  if (!rows || !Array.isArray(rows)) return [];
+  return rows.filter(r => r['Type']).map(r => ({
+    type:  r['Type'] || 'Entrenamiento',
+    dur:   r['Duration'] || '',
+    kcal:  safeNum(r['Active Energy (kcal)'], 5000),
+    avgHR: safeNum(r['Avg Heart Rate (bpm)'], 220),
+    maxHR: safeNum(r['Max Heart Rate (bpm)'], 220),
+  }));
+}
+
+function getBaseline() {
+  const hist = (state.data?.history || []).map(r => extractHealth(r)).filter(Boolean);
+  const hrv = hist.map(m => m.hrv).filter(v => v !== null);
+  const rhr = hist.map(m => m.rhr).filter(v => v !== null);
+  return {
+    hrv: hrv.length ? hrv.reduce((a,b)=>a+b,0)/hrv.length : null,
+    rhr: rhr.length ? rhr.reduce((a,b)=>a+b,0)/rhr.length : null,
+  };
+}
+
+function fmtHealth(m) {
+  if (!m) return 'Sin datos';
+  const l = [];
+  if (m.hrv  !== null) l.push(`HRV: ${m.hrv.toFixed(0)} ms`);
+  if (m.rhr  !== null) l.push(`FC reposo: ${m.rhr.toFixed(0)} bpm`);
+  if (m.spo2 !== null) l.push(`SpO2: ${m.spo2.toFixed(1)}%`);
+  if (m.rr   !== null) l.push(`Frecuencia respiratoria: ${m.rr.toFixed(1)} rpm`);
+  if (m.kcal !== null) l.push(`Energía activa: ${m.kcal.toFixed(0)} kcal`);
+  if (m.steps!== null) l.push(`Pasos: ${m.steps.toFixed(0)}`);
+  if (m.st   !== null) {
+    l.push(`Sueño total: ${m.st.toFixed(2)} h`);
+    if (m.sd !== null) l.push(`Sueño profundo: ${(m.sd*60).toFixed(0)} min`);
+    if (m.sr !== null) l.push(`REM: ${(m.sr*60).toFixed(0)} min`);
+    if (m.sa !== null) l.push(`Tiempo despierto: ${(m.sa*60).toFixed(0)} min`);
+  } else {
+    l.push('Datos de sueño no disponibles desde Health Metrics');
+  }
+  return l.join('\n');
+}
+
+function fmtWorkouts(ws) {
+  if (!ws || ws.length === 0) return 'Sin entrenamientos registrados';
+  return ws.map(w => {
+    const p = [w.type];
+    if (w.dur)  p.push(w.dur);
+    if (w.kcal) p.push(w.kcal.toFixed(0) + ' kcal');
+    if (w.avgHR) p.push('FC media: ' + w.avgHR.toFixed(0) + ' bpm');
+    return p.join(' | ');
+  }).join('\n');
+}
+
+// ── Claude API ───────────────────────────────────────────
+async function callClaude(messages, system, maxTokens = 800) {
+  const body = { model: MODEL, max_tokens: maxTokens, messages };
+  if (system) body.system = system;
+  const res = await fetch(CLAUDE_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content[0].text;
+}
+
+async function generateReport() {
+  const m  = extractHealth(state.data.health);
+  const ws = extractWorkouts(state.data.workouts);
+  const bl = getBaseline();
+  const today = new Date().toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const hist = (state.data.history || []).slice(0, 5).map((r, i) => {
+    const dm = extractHealth(r); if (!dm) return '';
+    const p = [];
+    if (dm.hrv) p.push(`HRV: ${dm.hrv.toFixed(0)} ms`);
+    if (dm.rhr) p.push(`FC: ${dm.rhr.toFixed(0)} bpm`);
+    if (dm.st)  p.push(`Sueño: ${dm.st.toFixed(1)} h`);
+    return `Hace ${i+1} día${i>0?'s':''}: ${p.join(', ')}`;
+  }).filter(Boolean).join('\n');
+
+  const prompt = `Eres un coach deportivo experto en recuperación atlética y periodización del entrenamiento.
+
+Fecha: ${today}
+
+Datos biométricos de hoy:
+${fmtHealth(m)}
+
+Entrenamientos:
+${fmtWorkouts(ws)}
+
+Baseline (promedio 7 días):
+- HRV baseline: ${bl.hrv ? bl.hrv.toFixed(0)+' ms' : 'sin datos'}
+- FC reposo baseline: ${bl.rhr ? bl.rhr.toFixed(0)+' bpm' : 'sin datos'}
+
+Historial reciente:
+${hist || 'Sin historial disponible'}
+
+Genera un informe con EXACTAMENTE este formato:
+
+SUEÑO
+[Evaluación del sueño. Si no hay datos válidos, analiza HRV y FC como proxy de recuperación nocturna.]
+
+RECUPERACIÓN [VERDE/AMARILLO/ROJO]
+[Estado basado en HRV vs baseline y tendencia. 2-3 frases.]
+
+FATIGA ACUMULADA: [X/10]
+[Justificación breve considerando el historial.]
+
+RECOMENDACIÓN: [DESCANSO/SUAVE/MODERADO/INTENSO/ALTA INTENSIDAD]
+[Justificación en 1-2 frases.]
+
+CONSEJO DEL DÍA
+[Una acción práctica y concreta.]
+
+Tono: coach directo y experimentado. Máximo 200 palabras total.`;
+
+  return callClaude([{ role: 'user', content: prompt }], null);
+}
+
+async function sendChat(message) {
+  if (!message.trim() || state.chatLoading) return;
+  const m  = extractHealth(state.data.health);
+  const ws = extractWorkouts(state.data.workouts);
+  const bl = getBaseline();
+
+  state.chat.push({ role: 'user', text: message });
+  state.chatLoading = true;
+  render();
+
+  const system = `Eres un coach deportivo analizando datos biométricos de un atleta.
+Datos de hoy: ${fmtHealth(m)}
+Entrenamientos: ${fmtWorkouts(ws)}
+Baseline HRV: ${bl.hrv ? bl.hrv.toFixed(0)+' ms' : 'sin datos'}
+Informe generado hoy:
+${state.report}
+Responde en español, directo y práctico. Máximo 120 palabras.`;
+
+  const messages = state.chat.map(c => ({
+    role: c.role === 'user' ? 'user' : 'assistant',
+    content: c.text,
+  }));
+
+  try {
+    const reply = await callClaude(messages, system, 300);
+    state.chat.push({ role: 'agent', text: reply });
+  } catch(e) {
+    state.chat.push({ role: 'agent', text: 'Error al procesar. Inténtalo de nuevo.' });
+  }
+
+  state.chatLoading = false;
+  render();
+  setTimeout(() => {
+    const el = document.getElementById('chat-messages');
+    if (el) el.scrollTop = el.scrollHeight;
+  }, 50);
+}
+
+// ── Data Loading ─────────────────────────────────────────
+async function loadData() {
+  state.view = 'loading';
+  state.error = null;
+  state.loadMsg = 'Conectando con Google Drive...';
+  render();
+
+  try {
+    const res = await fetch(GAS_URL);
+    if (!res.ok) throw new Error(`Error ${res.status} al conectar con el servidor`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    state.data = data;
+
+    state.loadMsg = 'Generando informe con IA...';
+    render();
+    state.report = await generateReport();
+    state.view = 'dashboard';
+  } catch(e) {
+    state.error = e.message;
+    state.view = 'error';
+  }
+  render();
+}
+
+// ── Render helpers ───────────────────────────────────────
+function parseRec(report) {
+  if (!report) return null;
+  const m = report.match(/RECOMENDACI[ÓO]N:\s*(DESCANSO|SUAVE|MODERADO|INTENSO|ALTA INTENSIDAD)/i);
+  return m ? m[1].toUpperCase() : null;
+}
+
+function recClass(r) {
+  const map = { DESCANSO:'rec-rest', SUAVE:'rec-soft', MODERADO:'rec-moderate', INTENSO:'rec-hard', 'ALTA INTENSIDAD':'rec-intense' };
+  return map[r] || 'rec-moderate';
+}
+
+function N(v, dec=0, unit='') {
+  if (v === null || v === undefined) return '<span class="dim">—</span>';
+  return v.toFixed(dec) + unit;
+}
+
+// ── Views ────────────────────────────────────────────────
+function viewLoading() {
+  return `<div class="loading-screen">
+    <div class="spinner"></div>
+    <div class="loading-msg">${state.loadMsg}</div>
+  </div>`;
+}
+
+function viewError() {
+  return `<div class="error-card">
+    <h3>No se pudieron cargar los datos</h3>
+    <div class="error-detail">${state.error}</div>
+    <p>Comprueba que el Apps Script está publicado correctamente y que Health Auto Export ha sincronizado archivos hoy.</p>
+    <br>
+    <button class="btn btn-ghost btn-sm" onclick="loadData()">Reintentar</button>
+  </div>`;
+}
+
+function viewDashboard() {
+  const m  = extractHealth(state.data.health);
+  const ws = extractWorkouts(state.data.workouts);
+  const bl = getBaseline();
+  const rec = parseRec(state.report);
+  const recC = recClass(rec);
+
+  const today = new Date().toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
+  const todayCap = today.charAt(0).toUpperCase() + today.slice(1);
+
+  const hdiff = m?.hrv && bl.hrv ? ((m.hrv - bl.hrv) / bl.hrv * 100) : null;
+  const rColor = m?.hrv && bl.hrv
+    ? (m.hrv/bl.hrv >= 0.95 ? 'good' : m.hrv/bl.hrv >= 0.80 ? 'warn' : 'bad')
+    : 'warn';
+
+  // Sleep bar
+  let sleepBar = '';
+  if (m?.st !== null && m?.st > 0) {
+    const t = m.st;
+    const dp = m.sd ? (m.sd/t*100) : 0;
+    const rp = m.sr ? (m.sr/t*100) : 0;
+    const cp = m.sc ? (m.sc/t*100) : 0;
+    const ap = m.sa ? (m.sa/t*100) : 0;
+    sleepBar = `
+      <div class="sleep-bar">
+        <div class="sleep-seg seg-deep"  style="flex:${dp}">${dp > 10 ? (m.sd*60).toFixed(0)+'m' : ''}</div>
+        <div class="sleep-seg seg-rem"   style="flex:${rp}">${rp > 10 ? (m.sr*60).toFixed(0)+'m' : ''}</div>
+        <div class="sleep-seg seg-core"  style="flex:${cp}">${cp > 10 ? (m.sc*60).toFixed(0)+'m' : ''}</div>
+        <div class="sleep-seg seg-awake" style="flex:${ap}">${ap > 10 ? (m.sa*60).toFixed(0)+'m' : ''}</div>
+      </div>
+      <div class="sleep-legend">
+        ${m.sd ? `<div class="leg-item"><div class="leg-dot" style="background:#1d4ed8"></div>Profundo</div>` : ''}
+        ${m.sr ? `<div class="leg-item"><div class="leg-dot" style="background:#6d28d9"></div>REM</div>` : ''}
+        ${m.sc ? `<div class="leg-item"><div class="leg-dot" style="background:#0e7490"></div>Core</div>` : ''}
+        ${m.sa ? `<div class="leg-item"><div class="leg-dot" style="background:#374151"></div>Despierto</div>` : ''}
+      </div>`;
+  }
+
+  // Report formatting
+  const reportHtml = (state.report || '')
+    .replace(/VERDE/g,   '<span class="highlight-green">VERDE</span>')
+    .replace(/AMARILLO/g,'<span class="highlight-yellow">AMARILLO</span>')
+    .replace(/ROJO/g,    '<span class="highlight-red">ROJO</span>');
+
+  // Workouts
+  const workoutsHtml = ws.length > 0
+    ? ws.map(w => `
+      <div class="workout-item">
+        <div>
+          <div class="workout-name">${w.type}</div>
+          <div class="workout-detail">${w.dur}${w.avgHR ? ' · FC media: ' + w.avgHR.toFixed(0) + ' bpm' : ''}</div>
+        </div>
+        <div class="workout-kcal">${w.kcal ? w.kcal.toFixed(0) + ' kcal' : ''}</div>
+      </div>`).join('')
+    : '<p class="dim" style="font-size:13px">Sin entrenamientos registrados hoy</p>';
+
+  // Chat
+  const chatHtml = state.chat.length > 0
+    ? state.chat.map(c => `
+        <div class="chat-msg ${c.role === 'user' ? 'chat-user' : 'chat-agent'}">
+          ${c.text.replace(/\n/g, '<br>')}
+        </div>`).join('')
+    : '<div class="chat-empty">Ajusta el entreno, pregunta sobre recuperación, registra sensaciones del día...</div>';
+
+  return `
+    <div class="header">
+      <div class="header-left">
+        <h1>Salud & Entreno</h1>
+        <div class="date">${todayCap}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="status-pill"><div class="status-dot"></div>activo</div>
+        <button class="refresh-btn" onclick="loadData()">↻</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Métricas de hoy</div>
+      <div class="metrics-grid">
+        <div class="metric">
+          <div class="metric-value ${rColor}">${N(m?.hrv, 0)}</div>
+          <div class="metric-label">HRV (ms)</div>
+          ${hdiff !== null ? `<div class="metric-delta ${hdiff >= 0 ? 'good' : 'bad'}">${hdiff >= 0 ? '+' : ''}${hdiff.toFixed(1)}%</div>` : ''}
+        </div>
+        <div class="metric">
+          <div class="metric-value">${N(m?.rhr, 0)}</div>
+          <div class="metric-label">FC reposo</div>
+          ${bl.rhr ? `<div class="metric-delta dim">base ${bl.rhr.toFixed(0)}</div>` : ''}
+        </div>
+        <div class="metric">
+          <div class="metric-value ${m?.spo2 ? (m.spo2 >= 97 ? 'good' : m.spo2 >= 95 ? 'warn' : 'bad') : ''}">${N(m?.spo2, 1, '%')}</div>
+          <div class="metric-label">SpO2</div>
+        </div>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric">
+          <div class="metric-value ${m?.st !== null ? (m.st >= 7 ? 'good' : m.st >= 6 ? 'warn' : 'bad') : ''}">${m?.st !== null && m?.st !== undefined ? m.st.toFixed(1)+'h' : '<span class="dim">—</span>'}</div>
+          <div class="metric-label">Sueño</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value">${m?.kcal ? m.kcal.toFixed(0) : '<span class="dim">—</span>'}</div>
+          <div class="metric-label">kcal activas</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value">${m?.steps ? (m.steps/1000).toFixed(1)+'k' : '<span class="dim">—</span>'}</div>
+          <div class="metric-label">Pasos</div>
+        </div>
+      </div>
+      ${sleepBar}
+    </div>
+
+    <div class="card">
+      <div class="card-label">Análisis del día</div>
+      ${rec ? `<div class="rec-badge ${recC}">${rec}</div>` : ''}
+      <div class="report-text">${reportHtml}</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Entrenamientos</div>
+      ${workoutsHtml}
+    </div>
+
+    <div class="card">
+      <div class="card-label">Chat con el agente</div>
+      <div class="chat-messages" id="chat-messages">
+        ${chatHtml}
+        ${state.chatLoading ? '<div class="chat-msg chat-agent dim">Analizando...</div>' : ''}
+      </div>
+      <div class="chat-input-row">
+        <input
+          class="chat-input"
+          id="chat-input"
+          type="text"
+          placeholder="Ej: ¿Puedo entrenar fuerte hoy? Modifica la sesión de esta tarde..."
+          onkeydown="if(event.key==='Enter') sendFromInput()"
+        />
+        <button class="btn-icon" onclick="sendFromInput()">→</button>
+      </div>
+    </div>
+
+    <div class="footer">
+      Datos actualizados automáticamente cada mañana · <a href="#" onclick="loadData();return false" style="color:var(--muted)">Actualizar ahora</a>
+    </div>`;
+}
+
+// ── Main render ──────────────────────────────────────────
+function render() {
+  const app = document.getElementById('app');
+  switch(state.view) {
+    case 'loading':   app.innerHTML = viewLoading(); break;
+    case 'error':     app.innerHTML = viewError(); break;
+    case 'dashboard': app.innerHTML = viewDashboard(); break;
+  }
+}
+
+function sendFromInput() {
+  const input = document.getElementById('chat-input');
+  const msg = input?.value?.trim();
+  if (!msg) return;
+  input.value = '';
+  sendChat(msg);
+}
+
+// ── Boot ─────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
